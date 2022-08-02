@@ -23,7 +23,7 @@ type charmStoreRepoSuite struct {
 	jujutesting.IsolationSuite
 }
 
-var TestCharms = charmtesting.NewRepo("storetests/internal/test-charm-repo", "quantal")
+var TestCharms = charmtesting.NewRepo("storetests/internal/test-charm-repo")
 
 var _ = gc.Suite(&charmStoreRepoSuite{})
 

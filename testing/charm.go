@@ -13,6 +13,30 @@ import (
 	"github.com/juju/utils/v3/fs"
 )
 
+const (
+	// BundlePathSegment is the postfix segment added to file paths to get the
+	// directory used for storing bundles in a local repo.
+	BundlePathSegment = "bundles"
+
+	// CharmsPathSegment is the postfix segment added to file paths to get the
+	// directory used for storing charms in a local repo.
+	CharmsPathSegment = "charms"
+)
+
+// Repo represents a charm repository on disk that is used for testing.
+// Charm repositories are expected to conform to the following directory
+// structure on disk.
+// ./
+//    charms/
+//      charm1/
+//      charm2/
+//    bundles/
+//      bundle1/
+//      bundle2/
+type Repo struct {
+	path string
+}
+
 func check(err error) {
 	if err != nil {
 		panic(err)
@@ -20,31 +44,22 @@ func check(err error) {
 }
 
 // NewRepo returns a new testing charm repository rooted at the given
-// path, relative to the package directory of the calling package, using
-// defaultSeries as the default series.
-func NewRepo(path, defaultSeries string) *Repo {
+// path, relative to the package directory of the calling package.
+func NewRepo(path string) *Repo {
 	// Find the repo directory. This is only OK to do
 	// because this is running in a test context
 	// so we know the source is available.
 	_, file, _, ok := runtime.Caller(1)
 	if !ok {
-		panic("cannot get caller")
+		panic("cannot get caller to determine repo path")
 	}
 	r := &Repo{
-		path:          filepath.Join(filepath.Dir(file), path),
-		defaultSeries: defaultSeries,
+		path: filepath.Join(filepath.Dir(file), path),
 	}
-	_, err := os.Stat(r.path)
-	if err != nil {
+	if _, err := os.Stat(r.path); err != nil {
 		panic(fmt.Errorf("cannot read repository found at %q: %v", r.path, err))
 	}
 	return r
-}
-
-// Repo represents a charm repository used for testing.
-type Repo struct {
-	path          string
-	defaultSeries string
 }
 
 func (r *Repo) Path() string {
@@ -60,7 +75,7 @@ func clone(dst, src string) string {
 // BundleDirPath returns the path to a bundle directory with the given name in the
 // default series
 func (r *Repo) BundleDirPath(name string) string {
-	return filepath.Join(r.Path(), "bundle", name)
+	return filepath.Join(r.Path(), BundlePathSegment, name)
 }
 
 // BundleDir returns the actual charm.BundleDir named name.
@@ -73,7 +88,7 @@ func (r *Repo) BundleDir(name string) *charm.BundleDir {
 // CharmDirPath returns the path to a charm directory with the given name in the
 // default series
 func (r *Repo) CharmDirPath(name string) string {
-	return filepath.Join(r.Path(), r.defaultSeries, name)
+	return filepath.Join(r.Path(), CharmsPathSegment, name)
 }
 
 // CharmDir returns the actual charm.CharmDir named name.
@@ -112,15 +127,9 @@ func (r *Repo) ClonedDir(dst, name string) *charm.CharmDir {
 	return ch
 }
 
-// ClonedURL makes a copy of the charm directory. It will create a directory
-// with the series name if it does not exist, and then clone the charm named
-// name into that directory. The return value is a URL pointing at the local
-// charm.
+// ClonedURL makes a copy of the charm directory into the new location specified
+// by dst. The return value is a URL pointing at the local charm.
 func (r *Repo) ClonedURL(dst, series, name string) *charm.URL {
-	dst = filepath.Join(dst, series)
-	if err := os.MkdirAll(dst, os.FileMode(0777)); err != nil {
-		panic(fmt.Errorf("cannot make destination directory: %v", err))
-	}
 	clone(dst, r.CharmDirPath(name))
 	return &charm.URL{
 		Schema:   "local",

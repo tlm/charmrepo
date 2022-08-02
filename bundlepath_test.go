@@ -14,6 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/juju/charmrepo/v7"
+	"github.com/juju/charmrepo/v7/testing"
 )
 
 type bundlePathSuite struct {
@@ -51,7 +52,7 @@ func (s *bundlePathSuite) TestInvalidRelativePath(c *gc.C) {
 }
 
 func (s *bundlePathSuite) TestRelativePath(c *gc.C) {
-	relDir := filepath.Join(TestCharms.Path(), "bundle")
+	relDir := filepath.Join(TestCharms.Path(), testing.BundlePathSegment)
 	cwd, err := os.Getwd()
 	c.Assert(err, jc.ErrorIsNil)
 	defer os.Chdir(cwd)
@@ -66,7 +67,7 @@ func (s *bundlePathSuite) TestNoBundleAtPath(c *gc.C) {
 }
 
 func (s *bundlePathSuite) TestGetBundle(c *gc.C) {
-	bundleDir := filepath.Join(TestCharms.Path(), "bundle", "openstack")
+	bundleDir := TestCharms.BundleDirPath("openstack")
 	b, url, err := charmrepo.NewBundleAtPath(bundleDir)
 	c.Assert(err, jc.ErrorIsNil)
 	c.Assert(b.Data(), jc.DeepEquals, TestCharms.BundleDir("openstack").Data())
